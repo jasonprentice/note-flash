@@ -25,7 +25,7 @@
       display: grid;
       grid-template-columns: 1fr 1fr;
       align-items: baseline;
-      gap: 0.3em;
+      column-gap: 0.3em;
       width: 100%;
       font-size: min(27vw, 48vh);
       font-weight: 700;
@@ -47,6 +47,32 @@
     #note .accidental {
       font-size: 0.6em;
       vertical-align: 0.5em;
+    }
+
+    .display select {
+      font-family: system-ui, -apple-system, sans-serif;
+      font-size: 1rem;
+      font-weight: 400;
+      margin-top: 1rem;
+      padding: 0.4rem 0.6rem;
+      border: 1px solid #444;
+      border-radius: 0.5rem;
+      background: #222;
+      color: #f5f5f5;
+      cursor: pointer;
+    }
+
+    #string-select {
+      justify-self: end;
+    }
+
+    #note-select {
+      justify-self: start;
+    }
+
+    .switch:has(input:disabled) {
+      opacity: 0.4;
+      cursor: default;
     }
 
     .controls {
@@ -135,6 +161,8 @@
   <div class="display">
     <div id="string">1</div>
     <div id="note">C</div>
+    <select id="string-select" aria-label="String"></select>
+    <select id="note-select" aria-label="Note"></select>
   </div>
 
   <div class="controls">
@@ -164,10 +192,27 @@
     const rateLabel = document.getElementById("rate-label");
     const toggleBtn = document.getElementById("toggle");
     const accidentalsInput = document.getElementById("accidentals");
+    const stringSelect = document.getElementById("string-select");
+    const noteSelect = document.getElementById("note-select");
+
+    const SHUFFLE = "shuffle";
 
     let current = null;
+    let currentString = null;
     let timer = null;
     let running = true;
+
+    function prettyNote(note) {
+      return note.replace("#", "♯").replace("b", "♭");
+    }
+
+    function fillSelect(select, values, label) {
+      select.add(new Option("Shuffle", SHUFFLE));
+      for (const v of values) select.add(new Option(label(v), v));
+    }
+
+    fillSelect(stringSelect, ["1", "2", "3", "4", "5", "6"], (s) => `String ${s}`);
+    fillSelect(noteSelect, NOTES, prettyNote);
 
     function render(note) {
       const letter = note[0];
@@ -177,18 +222,52 @@
         : letter;
     }
 
-    function nextNote() {
-      const pool = accidentalsInput.checked
-        ? NOTES
-        : NOTES.filter((n) => n.length === 1);
-      let note;
+    function pickRandom(pool, previous) {
+      let value;
       do {
-        note = pool[Math.floor(Math.random() * pool.length)];
-      } while (note === current);
-      current = note;
-      render(note);
-      stringEl.textContent = 1 + Math.floor(Math.random() * 6);
+        value = pool[Math.floor(Math.random() * pool.length)];
+      } while (value === previous && pool.length > 1);
+      return value;
     }
+
+    function nextNote() {
+      const noteFixed = noteSelect.value !== SHUFFLE;
+
+      if (noteFixed) {
+        current = noteSelect.value;
+      } else {
+        const pool = accidentalsInput.checked
+          ? NOTES
+          : NOTES.filter((n) => n.length === 1);
+        current = pickRandom(pool, current);
+      }
+
+      if (stringSelect.value !== SHUFFLE) {
+        currentString = stringSelect.value;
+      } else {
+        // With a fixed note, avoid repeating the string so each tick visibly changes.
+        const pool = ["1", "2", "3", "4", "5", "6"];
+        currentString = pickRandom(pool, noteFixed ? currentString : null);
+      }
+
+      render(current);
+      stringEl.textContent = currentString;
+    }
+
+    function onSelectChange() {
+      accidentalsInput.disabled = noteSelect.value !== SHUFFLE;
+      if (stringSelect.value !== SHUFFLE) {
+        currentString = stringSelect.value;
+        stringEl.textContent = currentString;
+      }
+      if (noteSelect.value !== SHUFFLE) {
+        current = noteSelect.value;
+        render(current);
+      }
+    }
+
+    stringSelect.addEventListener("change", onSelectChange);
+    noteSelect.addEventListener("change", onSelectChange);
 
     function tick() {
       nextNote();
@@ -223,7 +302,7 @@
     toggleBtn.addEventListener("click", () => (running ? stop() : start()));
 
     document.addEventListener("keydown", (e) => {
-      if (e.code === "Space") {
+      if (e.code === "Space" && e.target.tagName !== "SELECT") {
         e.preventDefault();
         running ? stop() : start();
       }
