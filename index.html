@@ -21,12 +21,27 @@
       user-select: none;
     }
 
-    #note {
-      font-size: min(40vw, 60vh);
+    .display {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      align-items: baseline;
+      gap: 0.3em;
+      width: 100%;
+      font-size: min(27vw, 48vh);
       font-weight: 700;
       line-height: 1;
       font-family: Georgia, "Times New Roman", serif;
+    }
+
+    #string {
+      font-family: "Times New Roman", Times, serif;
+      font-variant-numeric: lining-nums tabular-nums;
+      justify-self: end;
+    }
+
+    #note {
       min-height: 1em;
+      white-space: nowrap;
     }
 
     #note .accidental {
@@ -117,7 +132,10 @@
   </style>
 </head>
 <body>
-  <div id="note">C</div>
+  <div class="display">
+    <div id="string">1</div>
+    <div id="note">C</div>
+  </div>
 
   <div class="controls">
     <div class="slider-row">
@@ -141,6 +159,7 @@
     ];
 
     const noteEl = document.getElementById("note");
+    const stringEl = document.getElementById("string");
     const rateInput = document.getElementById("rate");
     const rateLabel = document.getElementById("rate-label");
     const toggleBtn = document.getElementById("toggle");
@@ -168,6 +187,7 @@
       } while (note === current);
       current = note;
       render(note);
+      stringEl.textContent = 1 + Math.floor(Math.random() * 6);
     }
 
     function tick() {
